@@ -5,7 +5,7 @@ module Telegram
         attribute :name, String
         attribute :title, String
         attribute :contains_masks, Boolean
-        attribute :stickers, [Sticker]
+        attribute :stickers, Array.of(Sticker)
       end
     end
   end
