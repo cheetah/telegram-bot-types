@@ -2,7 +2,7 @@ module Telegram
   module Bot
     module Types
       class InlineQueryResultCachedPhoto < Base
-        attribute :type, String, default: 'photo'
+        attribute :type, String.default('photo')
         attribute :id, String
         attribute :photo_file_id, String
         attribute :title, String
