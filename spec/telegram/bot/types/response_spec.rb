@@ -6,7 +6,7 @@ RSpec.describe Telegram::Bot::Types::Response do
   describe '.wrap' do
     subject { described_class.wrap(object, type) }
     let(:type) { Telegram::Bot::Types::File }
-    let(:object) { {'file_id' => 'file_1'} }
+    let(:object) { { 'file_id' => 'file_1' } }
 
     it { should be_instance_of(type) }
     its(:file_id) { should eq object['file_id'] }
@@ -18,7 +18,7 @@ RSpec.describe Telegram::Bot::Types::Response do
 
     context 'when type is array' do
       let(:type) { [super()] }
-      let(:object) { [super(), {'file_id' => 'file_3'}] }
+      let(:object) { [super(), { 'file_id' => 'file_3' }] }
       it 'returns array of wrapped objects' do
         subject.each_with_index do |x, i|
           expect(x).to be_instance_of(type.first)
