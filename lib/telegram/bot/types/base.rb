@@ -5,15 +5,27 @@ module Telegram
     module Types
       include Dry::Types.module
 
-      # Collection of default types. They are also available without
-      # `Types::` prefix in nested classes in opposite to other built-in types.
-      Boolean = self::Bool.optional
-      Integer = Coercible::Int.optional
-      String = Coercible::String.optional
-      Array = self::Array
+      Nil     = Strict::Nil
+      Array   = Strict::Array
+      Boolean = Strict::Bool
+      String  = Coercible::String
+      Integer = Coercible::Integer
+      Float   = Coercible::Float
 
       class Base < Dry::Struct
-        constructor_type :schema
+        transform_keys(&:to_sym)
+
+        transform_types do |type|
+          if type.optional?
+            type.meta(omittable: true)
+          else
+            type
+          end
+        end
+
+        def [](key)
+          super(key.to_sym)
+        end
 
         def to_hash(*)
           super.reject { |_k, v| v.nil? }
