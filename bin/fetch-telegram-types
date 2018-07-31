@@ -1,0 +1,122 @@
+#!/usr/bin/env ruby
+
+require 'json'
+require 'net/http'
+require 'nokogiri'
+require 'optparse'
+
+class Parser
+  DOCS_URL = 'https://core.telegram.org/bots/api'.freeze
+
+  TYPE_OR_REGEXP = / or /i
+  TYPE_REGEXP = /\A[A-Z]{1}\w+\z/
+  TYPE_ARRAY_REGEXP = /(?=Array of (.+))/
+  TYPE_EXCLUSIONS = ['InputFile', 'CallbackGame'].freeze
+  TYPE_MAPPING = {
+    'Float number' => 'Float',
+  }.freeze
+
+  attr_reader :file, :pretty, :version, :headers
+
+  def initialize(options)
+    doc = Nokogiri::HTML(Net::HTTP.get(URI(DOCS_URL)))
+
+    @file = options[:file]
+    @pretty = options[:pretty]
+    @version = doc.text.match(/^(Bot API ([\d\.]+))\.?$/)
+    @headers = doc.css('h4').select do |type|
+      type.text.match?(TYPE_REGEXP) && !TYPE_EXCLUSIONS.include?(type.text)
+    end
+  end
+
+  def parse
+    types = parse_headers
+    TYPE_EXCLUSIONS.each do |type|
+      types[:types] << { type: type, fields: [] }
+    end
+
+    { version: version, types: types[:types], sum: types[:sum] }
+  end
+
+  def parse_headers
+    headers.each_with_object(types: [], sum: []) do |type, acc|
+      desc = type.next_element
+      desc = desc.next_element until ['table', 'ul'].include?(desc.name)
+
+      case desc.name
+      when 'table'
+        acc[:types] << parse_type(type, desc)
+      when 'ul'
+        acc[:sum] << parse_sum(type, desc)
+      end
+    end
+  end
+
+  def parse_type(type, desc)
+    rows = desc.css('tr')
+    rows.shift
+
+    fields = rows.map { |x| x.css('td') }.reduce([]) do |acc, row|
+      acc << {
+        field: row[0].text,
+        types: prepare_type(row[1].text.dup),
+        optional: row[2].text.match?(/Optional/),
+      }
+    end
+
+    { type: type.text, fields: fields }
+  end
+
+  def prepare_type(type)
+    TYPE_MAPPING.each { |from, to| type.gsub!(from, to) }
+    type.split(TYPE_OR_REGEXP).map { |t| resolve_array_of(t) }
+  end
+
+  def resolve_array_of(type)
+    array = type.scan(TYPE_ARRAY_REGEXP).flatten
+    if array.empty?
+      type
+    else
+      array.reduce(array.last) { |acc, _| [acc] }
+    end
+  end
+
+  def parse_sum(type, desc)
+    { type: type.text, sum: desc.css('li').map(&:text) }
+  end
+
+  def to_json
+    pretty ? JSON.pretty_generate(parse) : JSON.dump(parse)
+  end
+
+  def write!
+    File.write(file, to_json)
+    puts "Updated #{file}"
+  end
+end
+
+options = {
+  file: File.expand_path('../lib/telegram/bot/types/types.json', __dir__),
+  pretty: false,
+}
+
+opt_parser = OptionParser.new do |opts|
+  opts.banner = "Usage: #{__FILE__} [options]"
+
+  opts.separator ''
+  opts.separator 'Options:'
+
+  opts.on('-f', '--file FILE', 'Specify output file') do |file|
+    options[:file] = File.expand_path(file, __dir__)
+  end
+
+  opts.on('-p', '--[no-]pretty', 'Generate human-readable JSON') do |pretty|
+    options[:pretty] = pretty
+  end
+
+  opts.separator ''
+end
+
+opt_parser.parse!
+puts opt_parser.help
+Parser.new(options).write!
