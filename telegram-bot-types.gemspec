@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Alexander Tipugin', 'Max Melentiev']
   spec.email         = ['atipugin@gmail.com', 'melentievm@gmail.com']
 
-  spec.summary       = 'Virtus types for Telegram Bot API'
+  spec.summary       = 'Dry types for Telegram Bot API'
   spec.homepage      = 'https://github.com/telegram-bot-rb/telegram-bot-types'
   spec.license       = 'MIT'
 
@@ -18,8 +18,8 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'dry-struct', '~> 0.3', '< 0.5'
-  spec.add_dependency 'dry-types', '< 0.13'
+  spec.add_dependency 'dry-struct', '~> 0.5'
+  spec.add_dependency 'dry-types', '~> 0.12'
 
   spec.add_development_dependency 'bundler', '~> 1.9'
   spec.add_development_dependency 'rake', '~> 10.0'
